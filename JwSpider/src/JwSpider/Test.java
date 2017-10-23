@@ -2,6 +2,7 @@ package JwSpider;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -31,7 +32,8 @@ public class Test {
     private String accout;
     private String password;
     static CookieStore cookieStore = new BasicCookieStore();
-    static HttpClient client = HttpClients.custom().setDefaultCookieStore(cookieStore).build();//实例化httpclient
+    static HttpClient client = HttpClients.createDefault();
+    		//实例化httpclientHttpClients.custom().setDefaultCookieStore(cookieStore).build();
     HttpResponse response = null;
     String rawHtml;
     public Test(String accout, String password) {
@@ -108,11 +110,73 @@ public class Test {
     		}
 		}
     }
+    
+    /*
+     * 获取个人课程的分数
+     */
+    public void getScore(){
+    	  parse(getScoreParm("35","2"));
+       	  parse(getScoreParm("36","2"));
+    	  parse(getScoreParm("36","1"));
+            parse(getScoreParm("37","1"));
+    }
+
+    /*   year：要查询的年份，比如2017就是37，2015就是35
+     *   term：要查询的学期，青大分为春1秋2夏3
+	 *   获取分数需要用到post请求并且需要提交表单参数
+     */
+    public HttpResponse getScoreParm(String year,String term){
+        try {	HttpPost post=new HttpPost("http://jw.qdu.edu.cn/academic/manager/score/studentOwnScore.do?groupId=&moduleId=2020");
+		ArrayList<NameValuePair> postData = new ArrayList<NameValuePair>();
+        postData.add(new BasicNameValuePair("year", year));
+        postData.add(new BasicNameValuePair("term", term));
+        postData.add(new BasicNameValuePair("para", "0"));  
+        postData.add(new BasicNameValuePair("sortColumn", ""));
+        postData.add(new BasicNameValuePair("Submit", "提交"));
+			post.setEntity(new UrlEncodedFormEntity(postData));
+				HttpResponse response=client.execute(post) ;
+				return response;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null;
+			}
+	
+      	
+    }
+    
+    public void parse(HttpResponse response){
+ 
+ 
+		try {
+		   	Document doc = Jsoup.parse(EntityUtils.toString(response.getEntity()));
+			   Element element= doc.select("table.datalist").first();
+		       Elements th= element.select("th");
+		       Elements td= element.select("tr ");
+		       for(int i=1;i<td.size();i++){
+		     	Elements trd= td.get(i).select("td"); 
+		     	for (int j =0;j<trd.size();j++) {
+		 			System.out.println(th.get(j).text()+":"+trd.get(j).text());
+		 		}
+		     	}
+		} catch (ParseException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+     
+    }
+    
+    
+    
+    
+    
+    
     public static void main(String[] args){  
         Test test = new Test("你的学号", "你的密码");  
         try {
 			test.login();
 			test.getInfo();
+			test.getScore();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
